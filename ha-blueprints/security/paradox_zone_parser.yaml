@@ -1,0 +1,191 @@
+blueprint:
+  name: "Paradox Zone Parser"
+  description: >-
+    Creates entities from Paradox alarm zone MQTT messages. Automatically generates binary sensors,
+    signal strength sensors, and device triggers for each zone with proper device classes and categories.
+    Supports MG5050, EVO192, and other Paradox alarm systems.
+    
+    Features:
+    - Creates individual entities for all zone states (motion, tamper, fire, etc.)
+    - Monitors signal strength with proper device class
+    - Groups all entities under a device with manufacturer info
+    - Auto-suggests areas based on zone names
+    - Configurable MQTT topic prefix
+    
+    Version: 1.1.0
+  domain: mqtt
+  source_url: https://github.com/YOUR_GITHUB_USERNAME/ha-blueprints/blob/main/paradox_zone_parser.yaml
+  input:
+    zone_name:
+      name: Zone Name
+      description: >-
+        Name of the zone (e.g., Lapa_PIR, Lounge_PIR). 
+        The first part before underscore will be used as the area name.
+        * Required
+      selector:
+        text:
+          multiline: false
+    device_model:
+      name: Device Model
+      description: "Model of your Paradox alarm system"
+      default: MG5050
+      selector:
+        select:
+          options:
+            - MG5050
+            - EVO192
+            - SP Series
+            - MG6250
+    mqtt_prefix:
+      name: MQTT Topic Prefix
+      description: "The MQTT topic prefix for your Paradox integration"
+      default: "paradox"
+      selector:
+        text:
+          multiline: false
+    create_triggers:
+      name: Create Device Triggers
+      description: "Create device triggers for automations"
+      default: true
+      selector:
+        boolean:
+
+mqtt:
+  binary_sensor:
+    # Main zone status sensors
+    - name: "{{ zone_name }} Open"
+      unique_id: "paradox_{{ zone_name }}_open"
+      state_topic: "{{ mqtt_prefix }}/states/zones/{{ zone_name }}"
+      value_template: "{{ value_json.open | default(false) }}"
+      device_class: motion
+      
+    - name: "{{ zone_name }} Tamper"
+      unique_id: "paradox_{{ zone_name }}_tamper"
+      state_topic: "{{ mqtt_prefix }}/states/zones/{{ zone_name }}"
+      value_template: "{{ value_json.tamper | default(false) }}"
+      device_class: tamper
+      entity_category: diagnostic
+      
+    - name: "{{ zone_name }} Fire"
+      unique_id: "paradox_{{ zone_name }}_fire"
+      state_topic: "{{ mqtt_prefix }}/states/zones/{{ zone_name }}"
+      value_template: "{{ value_json.fire | default(false) }}"
+      device_class: smoke
+      
+    - name: "{{ zone_name }} RF Supervision"
+      unique_id: "paradox_{{ zone_name }}_rf_supervision"
+      state_topic: "{{ mqtt_prefix }}/states/zones/{{ zone_name }}"
+      value_template: "{{ value_json.rf_supervision_trouble | default(false) }}"
+      device_class: problem
+      entity_category: diagnostic
+      
+    - name: "{{ zone_name }} Battery"
+      unique_id: "paradox_{{ zone_name }}_battery"
+      state_topic: "{{ mqtt_prefix }}/states/zones/{{ zone_name }}"
+      value_template: "{{ value_json.rf_low_battery_trouble | default(false) }}"
+      device_class: battery
+      entity_category: diagnostic
+      
+    - name: "{{ zone_name }} In Alarm"
+      unique_id: "paradox_{{ zone_name }}_was_in_alarm"
+      state_topic: "{{ mqtt_prefix }}/states/zones/{{ zone_name }}"
+      value_template: "{{ value_json.was_in_alarm | default(false) }}"
+      device_class: problem
+      
+    - name: "{{ zone_name }} Alarm"
+      unique_id: "paradox_{{ zone_name }}_alarm"
+      state_topic: "{{ mqtt_prefix }}/states/zones/{{ zone_name }}"
+      value_template: "{{ value_json.alarm | default(false) }}"
+      device_class: problem
+
+    # Delay status sensors
+    - name: "{{ zone_name }} Fire Delay"
+      unique_id: "paradox_{{ zone_name }}_fire_delay"
+      state_topic: "{{ mqtt_prefix }}/states/zones/{{ zone_name }}"
+      value_template: "{{ value_json.fire_delay | default(false) }}"
+      entity_category: diagnostic
+      
+    - name: "{{ zone_name }} Entry Delay"
+      unique_id: "paradox_{{ zone_name }}_entry_delay"
+      state_topic: "{{ mqtt_prefix }}/states/zones/{{ zone_name }}"
+      value_template: "{{ value_json.entry_delay | default(false) }}"
+      entity_category: diagnostic
+      
+    - name: "{{ zone_name }} Intellizone Delay"
+      unique_id: "paradox_{{ zone_name }}_intellizone_delay"
+      state_topic: "{{ mqtt_prefix }}/states/zones/{{ zone_name }}"
+      value_template: "{{ value_json.intellizone_delay | default(false) }}"
+      entity_category: diagnostic
+      
+    - name: "{{ zone_name }} No Delay"
+      unique_id: "paradox_{{ zone_name }}_no_delay"
+      state_topic: "{{ mqtt_prefix }}/states/zones/{{ zone_name }}"
+      value_template: "{{ value_json.no_delay | default(true) }}"
+      entity_category: diagnostic
+      
+    # Zone status sensors  
+    - name: "{{ zone_name }} Bypassed"
+      unique_id: "paradox_{{ zone_name }}_bypassed"
+      state_topic: "{{ mqtt_prefix }}/states/zones/{{ zone_name }}"
+      value_template: "{{ value_json.bypassed | default(false) }}"
+      entity_category: diagnostic
+      
+    - name: "{{ zone_name }} Shutdown"
+      unique_id: "paradox_{{ zone_name }}_shutdown"
+      state_topic: "{{ mqtt_prefix }}/states/zones/{{ zone_name }}"
+      value_template: "{{ value_json.shutdown | default(false) }}"
+      entity_category: diagnostic
+      
+    - name: "{{ zone_name }} TX Delay"
+      unique_id: "paradox_{{ zone_name }}_tx_delay"
+      state_topic: "{{ mqtt_prefix }}/states/zones/{{ zone_name }}"
+      value_template: "{{ value_json.in_tx_delay | default(false) }}"
+      entity_category: diagnostic
+      
+    - name: "{{ zone_name }} Was Bypassed"
+      unique_id: "paradox_{{ zone_name }}_was_bypassed"
+      state_topic: "{{ mqtt_prefix }}/states/zones/{{ zone_name }}"
+      value_template: "{{ value_json.was_bypassed | default(false) }}"
+      entity_category: diagnostic
+      
+    - name: "{{ zone_name }} Exit Delay"
+      unique_id: "paradox_{{ zone_name }}_exit_delay"
+      state_topic: "{{ mqtt_prefix }}/states/zones/{{ zone_name }}"
+      value_template: "{{ value_json.exit_delay | default(false) }}"
+      entity_category: diagnostic
+
+  sensor:
+    - name: "{{ zone_name }} Signal Strength"
+      unique_id: "paradox_{{ zone_name }}_signal_strength"
+      state_topic: "{{ mqtt_prefix }}/states/zones/{{ zone_name }}"
+      value_template: "{{ value_json.signal_strength | default(0) }}"
+      unit_of_measurement: "dBm"
+      device_class: signal_strength
+      state_class: measurement
+      entity_category: diagnostic
+
+  {% if create_triggers %}
+  device_trigger:
+    - platform: mqtt
+      type: motion
+      subtype: motion_start
+      topic: "{{ mqtt_prefix }}/states/zones/{{ zone_name }}"
+      payload: '{"open": true}'
+      value_template: "{{ value_json.open }}"
+    
+    - platform: mqtt
+      type: problem
+      subtype: tamper
+      topic: "{{ mqtt_prefix }}/states/zones/{{ zone_name }}"
+      payload: '{"tamper": true}'
+      value_template: "{{ value_json.tamper }}"
+  {% endif %}
+
+  # Device grouping configuration
+  device:
+    identifiers: 
+      - paradox_{{ zone_name }}
+    name: "Paradox {{ zone_name }}"
+    manufacturer: Paradox
+    model: "{{ device_model }}"
+    suggested_area: "{{ zone_name.split('_')[0] }}"
